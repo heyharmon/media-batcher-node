@@ -1,3 +1,4 @@
 name = 'media-batcher'
 compatibility_date = '2024-03-01'
 main = "src/index.js"
+compatibility_flags = [ "nodejs_compat" ]

@@ -37,10 +37,13 @@ async function processVideo(inputPath, outputPath) {
     });
 }
 
-async function processFiles(urls) {
+async function processFiles(urls, name) {
   const timestamp = Date.now();
   const tempDir = path.join(UPLOADS_DIR, `batch_${timestamp}`);
-  const zipPath = path.join(UPLOADS_DIR, `output_${timestamp}.zip`);
+  
+  // Use provided name or default to output_TIMESTAMP.zip
+  const zipFilename = name ? `${name}.zip` : `output_${timestamp}.zip`;
+  const zipPath = path.join(UPLOADS_DIR, zipFilename);
 
   fs.ensureDirSync(tempDir);
 
@@ -89,9 +92,8 @@ async function processFiles(urls) {
   });
 }
 
-
 fastify.get('/process', async (request, reply) => {
-  const { urls } = request.query;
+  const { urls, name } = request.query;
 
   // Ensure 'urls' is an array
   const urlList = Array.isArray(urls) ? urls : urls ? [urls] : [];
@@ -101,7 +103,7 @@ fastify.get('/process', async (request, reply) => {
   }
 
   try {
-      const zipFilePath = await processFiles(urlList);
+      const zipFilePath = await processFiles(urlList, name);
       const zipUrl = `/downloads/${path.basename(zipFilePath)}`;
       return { downloadUrl: zipUrl };
   } catch (err) {

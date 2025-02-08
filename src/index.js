@@ -8,7 +8,7 @@ import archiver from 'archiver';
 import ffmpeg from 'fluent-ffmpeg';
 
 const fastify = Fastify({ logger: true });
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8080;
 const UPLOADS_DIR = path.join(process.cwd(), 'uploads');
 
 fs.ensureDirSync(UPLOADS_DIR);
@@ -134,6 +134,7 @@ fastify.get('/', async (request, reply) => {
   return { message: 'Server is running!' };
 });
 
+// Start the Fastify server
 fastify.listen({ port: PORT }, (err, address) => {
     if (err) {
         fastify.log.error(err);

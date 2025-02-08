@@ -8,6 +8,7 @@ import archiver from 'archiver';
 import ffmpeg from 'fluent-ffmpeg';
 
 const fastify = Fastify({ logger: true });
+const PORT = process.env.PORT || 3000;
 const UPLOADS_DIR = path.join(process.cwd(), 'uploads');
 
 fs.ensureDirSync(UPLOADS_DIR);
@@ -128,7 +129,7 @@ fastify.get('/downloads/:filename', async (request, reply) => {
   return reply.sendFile(filename);
 });
 
-fastify.listen({ port: 3000 }, (err, address) => {
+fastify.listen({ port: PORT }, (err, address) => {
     if (err) {
         fastify.log.error(err);
         process.exit(1);

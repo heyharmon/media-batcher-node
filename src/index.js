@@ -129,6 +129,11 @@ fastify.get('/downloads/:filename', async (request, reply) => {
   return reply.sendFile(filename);
 });
 
+// Health check
+fastify.get('/', async (request, reply) => {
+  return { message: 'Server is running!' };
+});
+
 fastify.listen({ port: PORT }, (err, address) => {
     if (err) {
         fastify.log.error(err);

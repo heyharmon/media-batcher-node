@@ -135,7 +135,7 @@ fastify.get('/', async (request, reply) => {
 });
 
 // Start the Fastify server
-fastify.listen({ port: PORT }, (err, address) => {
+fastify.listen({ port: PORT, host: '0.0.0.0' }, (err, address) => {
     if (err) {
         fastify.log.error(err);
         process.exit(1);

@@ -38,41 +38,57 @@ async function processVideo(inputPath, outputPath) {
 }
 
 async function processFiles(urls) {
-    const timestamp = Date.now();
-    const tempDir = path.join(UPLOADS_DIR, `batch_${timestamp}`);
-    const zipPath = path.join(UPLOADS_DIR, `output_${timestamp}.zip`);
+  const timestamp = Date.now();
+  const tempDir = path.join(UPLOADS_DIR, `batch_${timestamp}`);
+  const zipPath = path.join(UPLOADS_DIR, `output_${timestamp}.zip`);
 
-    fs.ensureDirSync(tempDir);
+  fs.ensureDirSync(tempDir);
 
-    for (const url of urls) {
-        const ext = path.extname(url).toLowerCase();
-        const filename = path.basename(url);
-        const tempFilePath = path.join(tempDir, filename);
-        const outputFilePath = path.join(tempDir, `optimized_${filename}`);
+  const processedFiles = [];
 
-        await downloadFile(url, tempFilePath);
+  for (const url of urls) {
+      const ext = path.extname(url).toLowerCase();
+      const filename = path.basename(url);
+      const tempFilePath = path.join(tempDir, filename);
+      const outputFilePath = path.join(tempDir, `optimized_${filename}`);
 
-        if (ext === '.jpg' || ext === '.jpeg' || ext === '.png') {
-            await processImage(tempFilePath, outputFilePath);
-        } else if (ext === '.webm') {
-            await processVideo(tempFilePath, outputFilePath);
-        } else {
-            await fs.copy(tempFilePath, outputFilePath);
-        }
-    }
+      await downloadFile(url, tempFilePath);
 
-    const outputZip = fs.createWriteStream(zipPath);
-    const archive = archiver('zip', { zlib: { level: 9 } });
+      if (ext === '.jpg' || ext === '.jpeg' || ext === '.png') {
+          await processImage(tempFilePath, outputFilePath);
+      } else if (ext === '.webm') {
+          await processVideo(tempFilePath, outputFilePath);
+      } else {
+          await fs.copy(tempFilePath, outputFilePath);
+      }
 
-    return new Promise((resolve, reject) => {
-        archive.on('error', reject);
-        archive.on('end', () => resolve(zipPath));
+      processedFiles.push(outputFilePath);
+  }
 
-        archive.pipe(outputZip);
-        archive.directory(tempDir, false);
-        archive.finalize();
-    });
+  const outputZip = fs.createWriteStream(zipPath);
+  const archive = archiver('zip', { zlib: { level: 9 } });
+
+  return new Promise((resolve, reject) => {
+      archive.on('error', reject);
+      archive.on('end', async () => {
+          try {
+              await fs.remove(tempDir); // Delete the temporary batch folder
+              resolve(zipPath);
+          } catch (cleanupErr) {
+              reject(cleanupErr);
+          }
+      });
+
+      archive.pipe(outputZip);
+
+      for (const file of processedFiles) {
+          archive.file(file, { name: path.basename(file) });
+      }
+
+      archive.finalize();
+  });
 }
+
 
 fastify.get('/process', async (request, reply) => {
   const { urls } = request.query;

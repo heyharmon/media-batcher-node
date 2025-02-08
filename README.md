@@ -1,7 +1,22 @@
 # GTM Checker Cloudflare Worker
 
 ## Description
-This is a Cloudflare Worker designed to check and manage Google Tag Manager (GTM) tags. It includes rate limiting to prevent abuse.
+This is a Node micro service that can be run on Cloudflare Worker designed to batch optimize files. 
+
+## Usage
+Send a request to the worker's URL to optimize and zip media files. The worker will return a url to download the zip.
+
+## Running Locally
+To run the service locally, use the following command:
+```bash
+npm run dev
+```
+
+To run as a Cloudflare worker locally, use the following command:
+```bash
+wrangler dev
+```
+This will start a local server, typically on port `8787`. You can test the worker by sending requests to `http://localhost:8787`.
 
 ## Setup
 1. Clone the repository:
@@ -16,20 +31,6 @@ This is a Cloudflare Worker designed to check and manage Google Tag Manager (GTM
    ```bash
    wrangler deploy
    ```
-
-## Running Locally
-To run the worker locally, use the following command:
-```bash
-wrangler dev
-```
-This will start a local server, typically on port `8787`. You can test the worker by sending requests to `http://localhost:8787`.
-
-## Usage
-Send a request to the worker's URL to check GTM tags. The worker will return the status of the tags.
-
-## Dependencies
-- `cheerio`: For parsing HTML.
-- `wrangler`: For deploying the worker.
 
 ## License
 MIT

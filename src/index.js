@@ -1,4 +1,5 @@
 import Fastify from 'fastify';
+import FastifyCors from '@fastify/cors';
 import FastifyStatic from '@fastify/static';
 import fetch from 'node-fetch';
 import fs from 'fs-extra';
@@ -12,6 +13,13 @@ const PORT = process.env.PORT || 8080;
 const UPLOADS_DIR = path.join(process.cwd(), 'uploads');
 
 fs.ensureDirSync(UPLOADS_DIR);
+
+// Enable CORS
+fastify.register(FastifyCors, {
+  origin: '*', // Allow all origins. Change this to a specific domain if needed.
+  methods: ['GET'], // Specify allowed methods
+  allowedHeaders: ['Content-Type'], // Specify allowed headers
+});
 
 async function downloadFile(url, dest) {
     const response = await fetch(url);

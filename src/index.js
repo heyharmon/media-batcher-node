@@ -22,10 +22,16 @@ fastify.register(FastifyCors, {
 });
 
 async function downloadFile(url, dest) {
-    const response = await fetch(url);
-    if (!response.ok) throw new Error(`Failed to download ${url}`);
-    const buffer = await response.buffer();
-    await fs.writeFile(dest, buffer);
+  try {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`Failed to download ${url}: ${response.statusText}`);
+      const buffer = await response.buffer();
+      await fs.writeFile(dest, buffer);
+      return true; // Indicate success
+  } catch (error) {
+      console.error(`Error downloading file ${url}:`, error.message);
+      return false; // Indicate failure
+  }
 }
 
 async function processImage(inputPath, outputPath) {
@@ -49,8 +55,6 @@ async function processVideo(inputPath, outputPath) {
 async function processFiles(urls, name) {
   const timestamp = Date.now();
   const tempDir = path.join(UPLOADS_DIR, `batch_${timestamp}`);
-  
-  // Use provided name or default to output_TIMESTAMP.zip
   const zipFilename = name ? `${name}.zip` : `output_${timestamp}.zip`;
   const zipPath = path.join(UPLOADS_DIR, zipFilename);
 
@@ -64,17 +68,30 @@ async function processFiles(urls, name) {
       const tempFilePath = path.join(tempDir, filename);
       const outputFilePath = path.join(tempDir, `optimized_${filename}`);
 
-      await downloadFile(url, tempFilePath);
-
-      if (ext === '.jpg' || ext === '.jpeg' || ext === '.png') {
-          await processImage(tempFilePath, outputFilePath);
-      } else if (ext === '.webm') {
-          await processVideo(tempFilePath, outputFilePath);
-      } else {
-          await fs.copy(tempFilePath, outputFilePath);
+      const success = await downloadFile(url, tempFilePath);
+      if (!success) {
+          console.warn(`Skipping file due to download error: ${url}`);
+          continue; // Skip this file and move to the next
       }
 
-      processedFiles.push(outputFilePath);
+      try {
+          if (ext === '.jpg' || ext === '.jpeg' || ext === '.png') {
+              await processImage(tempFilePath, outputFilePath);
+          } else if (ext === '.webm') {
+              await processVideo(tempFilePath, outputFilePath);
+          } else {
+              await fs.copy(tempFilePath, outputFilePath);
+          }
+
+          processedFiles.push(outputFilePath);
+      } catch (error) {
+          console.error(`Error processing file ${filename}:`, error.message);
+          continue; // Skip this file if processing fails
+      }
+  }
+
+  if (processedFiles.length === 0) {
+      throw new Error('No files were successfully processed.');
   }
 
   const outputZip = fs.createWriteStream(zipPath);
@@ -84,7 +101,7 @@ async function processFiles(urls, name) {
       archive.on('error', reject);
       archive.on('end', async () => {
           try {
-              await fs.remove(tempDir); // Delete the temporary batch folder
+              await fs.remove(tempDir); // Clean up temp files
               resolve(zipPath);
           } catch (cleanupErr) {
               reject(cleanupErr);
@@ -101,22 +118,20 @@ async function processFiles(urls, name) {
   });
 }
 
-fastify.get('/process', async (request, reply) => {
-  const { urls, name } = request.query;
 
-  // Ensure 'urls' is an array
-  const urlList = Array.isArray(urls) ? urls : urls ? [urls] : [];
+fastify.post('/process', async (request, reply) => {
+  const { urls, name } = request.body; // Corrected from request.query to request.body
 
-  if (urlList.length === 0) {
-      return reply.status(400).send({ error: 'Invalid input' });
+  if (!urls || (Array.isArray(urls) && urls.length === 0)) {
+    return reply.status(400).send({ error: 'Invalid input' });
   }
 
   try {
-      const zipFilePath = await processFiles(urlList, name);
-      const zipUrl = `/downloads/${path.basename(zipFilePath)}`;
-      return { downloadUrl: zipUrl };
+    const zipFilePath = await processFiles(urls, name); // Fixed: urls instead of urlList
+    const zipUrl = `/downloads/${path.basename(zipFilePath)}`;
+    return reply.send({ downloadUrl: zipUrl });
   } catch (err) {
-      return reply.status(500).send({ error: err.message });
+    return reply.status(500).send({ error: err.message });
   }
 });
 

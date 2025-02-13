@@ -17,7 +17,7 @@ fs.ensureDirSync(UPLOADS_DIR);
 // Enable CORS
 fastify.register(FastifyCors, {
   origin: '*', // Allow all origins. Change this to a specific domain if needed.
-  methods: ['GET'], // Specify allowed methods
+  methods: ['GET', 'POST'], // Specify allowed methods
   allowedHeaders: ['Content-Type'], // Specify allowed headers
 });
 
